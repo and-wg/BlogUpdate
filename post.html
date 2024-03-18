@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blogg-skapa inlägg</title>
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styles */
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Main Styles */
+        main {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Heading Styles */
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Input Styles */
+        input[type="text"],
+        input[type="password"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        /* Submit Button Styles */
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Skapa ditt inlägg</h1>
+    </header>
+
+    <main>
+        <form action="/api/posts" method="post">
+            <h3>Titel</h3>
+            <input type="text" name="title" />
+            <h3>Text</h3>
+            <textarea name="text"></textarea>
+            <br>
+            <br>
+            <input type="hidden" id="csrf-token" name="_csrf">
+            <input type="submit" value="Skapa nytt inlägg" />
+        </form>
+
+    </main>
+    <script type="text/javascript" defer>
+
+        fetch("/api/session", {
+            credentials: 'include'
+        })
+            .then((response) => {
+                return response.json()
+            })
+            .then((session) => {
+                document.getElementById('csrf-token').value = session.csrfToken;
+            })
+    </script>
+</body>
+
+</html>

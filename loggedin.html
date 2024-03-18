@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blogg-inloggad</title>
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styles */
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Main Styles */
+        main {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Heading Styles */
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Input Styles */
+        input[type="text"],
+        input[type="password"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        /* Submit Button Styles */
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Välkommen!</h1>
+
+        <div class="loggedinusername">Här kommer användarnamnet visas för en inloggad användare</div>
+        <br>
+        <br>
+        <input type="hidden" id="csrf-token">
+        <a href="/post">Skapa nytt inlägg</a>
+        <script type="text/javascript" defer>
+
+            let socket = new WebSocket("ws://localhost:3000/likes");
+
+            function likePost(postId) {
+                socket.send(JSON.stringify({
+                    postId: postId
+                }))
+            }
+
+            fetch("/api/session", {
+                credentials: 'include'
+            })
+                .then((response) => {
+                    return response.json()
+                })
+                .then((session) => {
+                    const userType = session.admin ? " (admin)" : "";
+                    document.getElementsByClassName("loggedinusername")[0].innerHTML = session.username + userType;
+                    document.getElementById('csrf-token').value = session.csrfToken;
+                })
+
+            fetch("/api/posts")
+                .then((response) => {
+                    return response.json()
+                })
+                .then((posts) => {
+                    let postsHtml = "";
+                    for (let index = 0; index < posts.length; index++) {
+                        const post = posts[index];
+
+                        const postDate = new Date(post.date);
+
+                        const year = postDate.getFullYear();
+                        let month = postDate.getMonth() + 1;
+                        if (month < 10) {
+                            month = "0" + month;
+                        }
+                        let day = postDate.getDate();
+                        if (day < 10) {
+                            day = "0" + day;
+                        }
+
+                        const time = postDate.toLocaleTimeString("sv-SE");
+
+                        const formatDate = year + "-" + month + "-" + day + " " + time;
+
+                        postsHtml += "<article> <h2>" + escapeHtml(post.title) + " - " + escapeHtml(post.user) + " - " + formatDate + "</h2> <p>" + escapeHtml(post.text) + "</p> ";
+
+                        postsHtml += "<h4>Kommentarer:</h4>";
+
+                        postsHtml += "<ul>";
+                        post.comments?.forEach((comment) => {
+                            postsHtml += "<li>" + escapeHtml(comment.text) + " (" + escapeHtml(comment.user) + ")</li>";
+                        })
+                        postsHtml += "</ul>"
+
+
+                        postsHtml += "<input type='button' value='Gilla' onclick='likePost(\"" + post.id + "\")' />";
+
+                        postsHtml += "<h4>Gillat av:</h4>";
+
+                        postsHtml += "<ul class='likes' data-postid='" + post.id + "'>";
+                        post.likes?.forEach((like) => {
+                            postsHtml += "<li>" + escapeHtml(like.user) + "</li>";
+                        })
+                        postsHtml += "</ul>"
+
+                        postsHtml += "<form action='/api/posts/" + post.id + "/comment' method='post'> <input type='text' name='text'/> <input type='submit' value='Kommentera'/> </form>";
+
+
+                        if (post.canDeletePost) {
+                            postsHtml += "<form action='/api/posts/" + post.id + "/delete' method='post'> <input type='submit' value='Radera'/> </form>";
+                        }
+
+                        postsHtml += "</article>";
+
+                        // lätt till post.text samt post.user och post.date
+
+                    }
+                    document.getElementsByClassName("postscontent")[0].innerHTML = postsHtml;
+                })
+
+            socket.onopen = function (e) {
+                console.log("webbsocket startad");
+            };
+
+            socket.onmessage = function (event) {
+                console.log("webbsocket tog emot" + event.data);
+                const likeObject = JSON.parse(event.data);
+                console.log(likeObject);
+                let likesElement = document.body.querySelector(".likes[data-postid='" + likeObject.postId + "']")
+                let likeLi = document.createElement("li");
+                likeLi.appendChild(document.createTextNode(likeObject.user));
+                likesElement.append(likeLi);
+            };
+
+            socket.onclose = function (event) {
+                console.log("Webbsocket stoppad");
+            };
+
+            socket.onerror = function (error) {
+                console.log("Webbsocket fel: " + error);
+            };
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        </script>
+
+
+    </header>
+
+
+    <main class="postscontent">
+        <article>
+            <h2>Blogginlägg 1</h2>
+        </article>
+
+        <article>
+            <h2>Blogginlägg 2</h2>
+        </article>
+
+        <article>
+            <h2>Blogginlägg 3</h2>
+        </article>
+
+        <article>
+            <h2>Blogginlägg 4</h2>
+        </article>
+    </main>
+
+    <form action="/api/logout" method="post">
+        <input type="submit" value="Logga ut" />
+    </form>
+
+
+</body>
+
+</html>
