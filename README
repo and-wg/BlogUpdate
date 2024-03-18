@@ -1,0 +1,3 @@
+Security is always an important aspect of any application. 
+This is a simple blog application that uses modern methods to communicate over the internet. 
+The application also includes OAuth and a basic role system for managing permissions. It also protects the application against XSS and CSRF.
