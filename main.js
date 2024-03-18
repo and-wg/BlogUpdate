@@ -13,7 +13,7 @@ const expressWs = require('express-ws')(server);
 
 const port = 3000;
 
-const mongoConnectionString = "mongodb+srv://ragnar525:1234@doggy-care.2ervazx.mongodb.net/?retryWrites=true&w=majority&appName=doggy-care";
+const mongoConnectionString = "USE YOUR MONGODB STRING TO CONNECT";
 
 
 server.use(cookieParser());
